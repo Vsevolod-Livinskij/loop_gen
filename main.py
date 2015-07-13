@@ -15,7 +15,7 @@ LIMITS = {"int8_t"   : "INT8",
           "double"   : "DBL",
           "float"    : "FLT"}
 
-ARRAY_LEN_LIMIT = 10
+ARRAY_LEN_LIMIT = 3
 
 
 class Type:
@@ -110,30 +110,47 @@ class Loop:
                     list_j.append(list_k)
                 list_i.append(list_j)
             self.rand_table.append(list_i)
-        print self.rand_table
-
  
     def __str__(self):
-        return "for(" + str(self.type) + " i = " + str(self.st) + "; i < " \
-               + str(self.end) + "; i += " + str(self.step) + ")" 
-
+        ret = "for(" + str(self.type) + " i = " + str(self.st) + "; i < " \
+               + str(self.end) + "; i += " + str(self.step) + ") {\n"
+        for i in range(self.out_data.size):
+            tmp_line = ""
+            for j in range(self.out_data.array[i].size):
+                tmp_line += self.out_data.array[i].name + " [" + str(j) + "] = "
+                for k in range(self.in_data.size):
+                    for l in range(self.in_data.array[k].size):
+                        tmp_line += str(self.rand_table[i][j][k][l]) + " * " \
+                               + self.in_data.array[k].name + " [" + str(l) + "] + "
+                ret += tmp_line [:-3] + ";\n"
+        ret += "}\n"
+        return ret
     def rand_fill(self):
         self.st = self.type.get_rand_value()
         self.end = self.type.get_rand_value()
         self.step = abs(self.type.get_rand_value())
         if (self.st > self.end):
             self.step = -1 * abs(self.type.get_rand_value())
+        
+        for i in range(self.out_data.size):
+            for j in range(self.out_data.array[i].size):
+                for k in range(self.in_data.size):
+                    for l in range(self.in_data.array[k].size):
+                        self.rand_table[i][j][k][l] = self.in_data.array[k].type.get_rand_value()
          
 ############################################################################### 
-random.seed(time.clock)
+#random.seed(time.clock)
+random.seed(10)
 
 inp =  Data(5, "inp_")
 inp.rand_fill()
 print inp
+print "//***************************************"
 
 out = Data(3, "out_")
 out.rand_fill()
 print out
+print "//***************************************"
 
 a = Loop ("int", inp, out)
 a.rand_fill()

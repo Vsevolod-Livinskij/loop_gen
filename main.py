@@ -17,6 +17,7 @@ LIMITS = {"int8_t"   : "INT8",
 
 ARRAY_LEN_LIMIT = 10
 
+
 class Type:
     def __init__(self, name):
         self.name = name;
@@ -70,8 +71,8 @@ class Array:
 class Data:
     def __init__(self, size, name_base):
         self.size = size
+        self.name_base = name_base
         self.array = [Array("int8_t", name_base + str(i), 1) for i in range(self.size)]
-        self.rand_fill(name_base)
 
     def __str__(self):
         ret = self.array[0].__str__() + ";"
@@ -79,12 +80,12 @@ class Data:
             ret += "\n" + self.array[i].__str__() + ";"
         return ret
 
-    def rand_fill(self, name_base, len_limit = ARRAY_LEN_LIMIT):
+    def rand_fill(self, len_limit = ARRAY_LEN_LIMIT):
         param = []
         for i in range(self.size):
             val_type = random.choice(LIMITS.keys())
             size = random.randint(1, len_limit)
-            param.append([val_type, name_base + str(i), size])
+            param.append([val_type, self.name_base + str(i), size])
         self.array = [Array(param [i] [0], param [i] [1], param [i] [2]) for i in range(self.size)]
         for i in range (self.size):
             self.array[i].rand_fill()
@@ -97,7 +98,20 @@ class Loop:
         self.step = 1
         self.in_data = in_data
         self.out_data = out_data       
-        self.rand_fill()
+        self.rand_table = []
+        for i in range(self.out_data.size):
+            list_i = []
+            for j in range(self.out_data.array[i].size):
+                list_j = []
+                for k in range(self.in_data.size):
+                    list_k = []
+                    for l in range(self.in_data.array[k].size):
+                        list_k.append(0)
+                    list_j.append(list_k)
+                list_i.append(list_j)
+            self.rand_table.append(list_i)
+        print self.rand_table
+
  
     def __str__(self):
         return "for(" + str(self.type) + " i = " + str(self.st) + "; i < " \
@@ -109,23 +123,18 @@ class Loop:
         self.step = abs(self.type.get_rand_value())
         if (self.st > self.end):
             self.step = -1 * abs(self.type.get_rand_value())
-            
-###############################################################################
-def gen_rand_arrays(name_base, size, len_limit = 100):
-    ret = []
-    for i in range(size):
-        val_type = random.choice(LIMITS.keys())
-        size = random.randint(1, len_limit)
-        ret.append([val_type, name_base + str(i), size])
-    return ret
-
+         
 ############################################################################### 
 random.seed(time.clock)
 
 inp =  Data(5, "inp_")
+inp.rand_fill()
 print inp
 
 out = Data(3, "out_")
+out.rand_fill()
 print out
-a = Loop ("int")
+
+a = Loop ("int", inp, out)
+a.rand_fill()
 print a

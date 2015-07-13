@@ -17,6 +17,32 @@ LIMITS = {"int8_t"   : "INT8",
 
 ARRAY_LEN_LIMIT = 3
 
+MAX_LIMITS_NUM = {"INT8_MAX"   : 127,
+                  "UINT8_MAX"  : 255,
+                  "INT16_MAX"  : 32767,
+                  "UINT16_MAX" : 65535,
+                  "INT32_MAX"  : 2147483647,
+                  "UINT32_MAX" : 4294967295,
+                  "INT_MAX"    : 2147483647,
+                  "UINT_MAX"   : 4294967295,
+                  "INT64_MAX"  : 9223372036854775807, 
+                  "UINT64_MAX" : 18446744073709551615,
+                  "DBL_MAX"    : 18446744073709551615,
+                  "FLT_MAX"    : 18446744073709551615}
+
+MIN_LIMITS_NUM = {"INT8_MIN"   : -128,
+                  "UINT8_MIN"  : 0,
+                  "INT16_MIN"  : -32768,
+                  "UINT16_MIN" : 0,
+                  "INT32_MIN"  : -2147483648,
+                  "UINT32_MIN" : 0,
+                  "INT_MIN"    : -2147483648,
+                  "UINT_MIN"   : 0,
+                  "INT64_MIN"  : -9223372036854775808,
+                  "UINT64_MIN" : 0,
+                  "DBL_MIN"    : -18446744073709551615,
+                  "FLT_MIN"    : -18446744073709551615}
+
 
 class Type:
     def __init__(self, name):
@@ -33,7 +59,9 @@ class Type:
         else:
             return True
 
-    def get_rand_value(self, st = 0, end = 5000):
+    def get_rand_value(self):
+        st = MIN_LIMITS_NUM[self.min]
+        end = MAX_LIMITS_NUM[self.max] 
         if self.is_int():
             return random.randint(st, end)
         else:
@@ -93,8 +121,8 @@ class Data:
 class Loop:
     def __init__(self, iter_type, in_data, out_data):
         self.type = Type(iter_type)
-        self.st = self.type.min
-        self.end = self.type.max
+        self.st = 0
+        self.end = 1
         self.step = 1
         self.in_data = in_data
         self.out_data = out_data       
@@ -125,22 +153,23 @@ class Loop:
                 ret += tmp_line [:-3] + ";\n"
         ret += "}\n"
         return ret
+
     def rand_fill(self):
-        self.st = self.type.get_rand_value()
-        self.end = self.type.get_rand_value()
-        self.step = abs(self.type.get_rand_value())
-        if (self.st > self.end):
-            self.step = -1 * abs(self.type.get_rand_value())
-        
+        max_size = -1
         for i in range(self.out_data.size):
             for j in range(self.out_data.array[i].size):
+                max_size = max(self.out_data.array[i].size, max_size)
                 for k in range(self.in_data.size):
                     for l in range(self.in_data.array[k].size):
+                        max_size =  max(self.in_data.array[i].size, max_size)
                         self.rand_table[i][j][k][l] = self.in_data.array[k].type.get_rand_value()
-         
+        
+        self.st = 0
+        self.end = random.randint(0, max_size + 1)
+        self.step = random.randint(self.st, self.end)
 ############################################################################### 
-#random.seed(time.clock)
-random.seed(10)
+random.seed(time.clock)
+#random.seed(10)
 
 inp =  Data(5, "inp_")
 inp.rand_fill()

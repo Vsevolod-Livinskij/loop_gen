@@ -9,7 +9,6 @@ LIMITS = {"int8_t"   : "INT8",
           "int32_t"  : "INT32",
           "uint32_t" : "UINT32",
           "int"      : "INT",
-          "uint"     : "UINT",
           "int64_t"  : "INT64",
           "uint64_t" : "UINT64",
           "double"   : "DBL",
@@ -92,6 +91,9 @@ class Array:
         ret += "}"
         return ret
 
+    def print_as_param(self):
+        return  str(self.type) + "* " + self.name
+
     def rand_fill(self):
         for i in range (self.size):
             self.data[i].rand_fill()
@@ -106,6 +108,12 @@ class Data:
         ret = self.array[0].__str__() + ";"
         for i in range (1, self.size):
             ret += "\n" + self.array[i].__str__() + ";"
+        return ret
+
+    def print_as_param(self):
+        ret = self.array[0].print_as_param()
+        for i in range (1, self.size):
+            ret += ", " + self.array[i].print_as_param()
         return ret
 
     def rand_fill(self, len_limit = ARRAY_LEN_LIMIT):
@@ -173,14 +181,21 @@ random.seed(time.clock)
 
 inp =  Data(5, "inp_")
 inp.rand_fill()
-print inp
-print "//***************************************"
 
 out = Data(3, "out_")
 out.rand_fill()
-print out
-print "//***************************************"
 
-a = Loop ("int", inp, out)
-a.rand_fill()
-print a
+loop = Loop ("int", inp, out)
+loop.rand_fill()
+###############################################################################
+
+print "#include <stdint.h>"
+print "#include <limits.h>\n"
+
+print "void foo ("
+print out.print_as_param()
+print ") {\n"
+print inp
+print "//***************************************"
+print loop
+print "}"

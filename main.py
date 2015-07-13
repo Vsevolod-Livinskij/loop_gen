@@ -1,3 +1,7 @@
+import time
+import random
+
+
 LIMITS = {"int8_t"   : "INT8",
           "uint8_t"  : "UINT8",
           "int16_t"  : "INT16",
@@ -11,6 +15,7 @@ LIMITS = {"int8_t"   : "INT8",
           "double"   : "DBL",
           "float"    : "FLT"}
 
+ARRAY_LEN_LIMIT = 10
 
 class Type:
     def __init__(self, name):
@@ -18,21 +23,109 @@ class Type:
         self.max = LIMITS[name] + "_MAX"
         self.min = LIMITS[name] + "_MIN"
 
+    def __str__(self):
+        return self.name
+
+    def is_int(self):
+        if self.name == "double" or self.name == "float":
+            return False
+        else:
+            return True
+
+    def get_rand_value(self, st = 0, end = 5000):
+        if self.is_int():
+            return random.randint(st, end)
+        else:
+            return random.uniform(st, end)
+
+class Elem:
+    def __init__(self, elem_type):
+        self.val_type = elem_type
+        self.value = self.val_type.min
+
+    def __str__(self):
+        return self.value
+
+    def rand_fill(self):
+        self.value = self.val_type.get_rand_value()
+
+class Array:
+    def __init__(self, elem_type, name, size):
+        self.type = Type(elem_type)
+        self.name = name
+        self.size = size
+        self.data = [Elem(self.type) for i in range(self.size)]
+
+    def __str__(self):
+        ret = str(self.type) + " " + self.name + " [" + str(self.size) + "] = {" + str(self.data[0].value)
+        for i in range (1, self.size):
+            ret += ", " + str(self.data[i].value)
+        ret += "}"
+        return ret
+
+    def rand_fill(self):
+        for i in range (self.size):
+            self.data[i].rand_fill()
+
 class Data:
-    def __init__(self, data_type, size):
-        self.type = Type(data_type)
-        self.size = size    
+    def __init__(self, size, name_base):
+        self.size = size
+        self.array = [Array("int8_t", name_base + str(i), 1) for i in range(self.size)]
+        self.rand_fill(name_base)
 
-    def __
+    def __str__(self):
+        ret = self.array[0].__str__() + ";"
+        for i in range (1, self.size):
+            ret += "\n" + self.array[i].__str__() + ";"
+        return ret
 
-a = Type("float")
-print a.name
-print a.max
-print a.min
+    def rand_fill(self, name_base, len_limit = ARRAY_LEN_LIMIT):
+        param = []
+        for i in range(self.size):
+            val_type = random.choice(LIMITS.keys())
+            size = random.randint(1, len_limit)
+            param.append([val_type, name_base + str(i), size])
+        self.array = [Array(param [i] [0], param [i] [1], param [i] [2]) for i in range(self.size)]
+        for i in range (self.size):
+            self.array[i].rand_fill()
 
-b = Data("int64_t", 20)
-print b.type.name
-print b.type.max
-print b.type.min
-print b.size
+class Loop:
+    def __init__(self, iter_type, in_data, out_data):
+        self.type = Type(iter_type)
+        self.st = self.type.min
+        self.end = self.type.max
+        self.step = 1
+        self.in_data = in_data
+        self.out_data = out_data       
+        self.rand_fill()
+ 
+    def __str__(self):
+        return "for(" + str(self.type) + " i = " + str(self.st) + "; i < " \
+               + str(self.end) + "; i += " + str(self.step) + ")" 
 
+    def rand_fill(self):
+        self.st = self.type.get_rand_value()
+        self.end = self.type.get_rand_value()
+        self.step = abs(self.type.get_rand_value())
+        if (self.st > self.end):
+            self.step = -1 * abs(self.type.get_rand_value())
+            
+###############################################################################
+def gen_rand_arrays(name_base, size, len_limit = 100):
+    ret = []
+    for i in range(size):
+        val_type = random.choice(LIMITS.keys())
+        size = random.randint(1, len_limit)
+        ret.append([val_type, name_base + str(i), size])
+    return ret
+
+############################################################################### 
+random.seed(time.clock)
+
+inp =  Data(5, "inp_")
+print inp
+
+out = Data(3, "out_")
+print out
+a = Loop ("int")
+print a

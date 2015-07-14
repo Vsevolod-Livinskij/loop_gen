@@ -1,10 +1,9 @@
 import time
 import random
 
-
 INP_ARRAY_NUM = 5
 OUT_ARRAY_NUM = 5
-ARRAY_LEN_LIMIT = 100
+ARRAY_LEN_LIMIT = 200
 
 ###############################################################################
 
@@ -16,9 +15,7 @@ LIMITS = {"int8_t"   : "INT8",
           "uint32_t" : "UINT32",
           "int"      : "INT",
           "int64_t"  : "INT64",
-          "uint64_t" : "UINT64",
-          "double"   : "DBL",
-          "float"    : "FLT"}
+          "uint64_t" : "UINT64"}
 
 MAX_LIMITS_NUM = {"INT8_MAX"   : 127,
                   "UINT8_MAX"  : 255,
@@ -29,9 +26,7 @@ MAX_LIMITS_NUM = {"INT8_MAX"   : 127,
                   "INT_MAX"    : 2147483647,
                   "UINT_MAX"   : 4294967295,
                   "INT64_MAX"  : 9223372036854775807, 
-                  "UINT64_MAX" : 18446744073709551615,
-                  "DBL_MAX"    : 18446744073709551615,
-                  "FLT_MAX"    : 18446744073709551615}
+                  "UINT64_MAX" : 18446744073709551615}
 
 MIN_LIMITS_NUM = {"INT8_MIN"   : -128,
                   "UINT8_MIN"  : 0,
@@ -42,9 +37,7 @@ MIN_LIMITS_NUM = {"INT8_MIN"   : -128,
                   "INT_MIN"    : -2147483648,
                   "UINT_MIN"   : 0,
                   "INT64_MIN"  : -9223372036854775808,
-                  "UINT64_MIN" : 0,
-                  "DBL_MIN"    : -18446744073709551615,
-                  "FLT_MIN"    : -18446744073709551615}
+                  "UINT64_MIN" : 0}
 
 ###############################################################################
 
@@ -90,7 +83,7 @@ class Array:
         self.data = [Elem(self.type) for i in range(self.size)]
 
     def __str__(self):
-        ret = str(self.type) + " " + self.name + " [" + str(self.size) + "] = {" + str(self.data[0].value)
+        ret = "\t\t" + str(self.type) + " " + self.name + " [" + str(self.size) + "] = {" + str(self.data[0].value)
         for i in range (1, self.size):
             ret += ", " + str(self.data[i].value)
         ret += "}"
@@ -121,6 +114,12 @@ class Data:
             ret += ", " + self.array[i].print_as_param()
         return ret
 
+    def print_in_call(self):
+        ret = self.array[0].name
+        for i in range (1, self.size):
+            ret += ", " + self.array[i].name
+        return ret
+
     def rand_fill(self, len_limit = ARRAY_LEN_LIMIT):
         param = []
         for i in range(self.size):
@@ -147,16 +146,16 @@ class Loop:
             self.rand_table.append(list_i)
  
     def __str__(self):
-        ret = "for(" + str(self.type) + " i = " + str(self.st) + "; i < " \
+        ret = "\t\tfor(" + str(self.type) + " i = " + str(self.st) + "; i < " \
                + str(self.end) + "; i += " + str(self.step) + ") {\n"
         for i in range(self.out_data.size):
-            tmp_line = "\t\t"
+            tmp_line = "\t\t\t\t"
             tmp_line += self.out_data.array[i].name + " [i] = "
             for j in range(self.in_data.size):
                 tmp_line += "(" + str(self.rand_table[i][j]) + ") * " \
                             + self.in_data.array[j].name + " [i] + "
             ret += tmp_line [:-3] + ";\n"
-        ret += "}\n"
+        ret += "\t\t}\n"
         return ret
 
     def rand_fill(self):
@@ -170,6 +169,14 @@ class Loop:
         self.st = 0
         self.end = min_size - 1
         self.step = random.randint(self.st, self.end)
+        self.step = max(self.step, 1)
+
+    def print_checksum(self):
+        ret = "\t\tuint64_t checksum = UINT64_MAX;\n"
+        for i in range(self.out_data.size):
+            ret += "\t\tfor (int i = 0; i < " + str(self.out_data.array[i].size) + "; i++)\n"
+            ret += "\t\t\t\tchecksum ^= (uint64_t)" + self.out_data.array[i].name + "[i];\n"
+        return ret       
 ############################################################################### 
 random.seed(time.clock)
 #random.seed(10)
@@ -184,13 +191,39 @@ loop = Loop ("int", inp, out)
 loop.rand_fill()
 ###############################################################################
 
-print "#include <stdint.h>"
-print "#include <limits.h>\n"
+f = open("func.cpp", "w")
 
-print "void foo ("
-print out.print_as_param()
-print ") {\n"
-print inp
-print "\n///////////////////////////////////////////////////////////////////////////\n"
-print loop
-print "}"
+f.write("#include <stdint.h>\n")
+f.write("#include <limits.h>\n")
+
+f.write( "void func (")
+f.write(out.print_as_param())
+f.write(") {\n")
+f.write(inp.__str__())
+f.write("\n/////////////////////////////////////////////////////////////////////////////////////////////////////\n")
+f.write(loop.__str__())
+f.write("}")
+
+f.close()
+###############################################################################
+
+t = open("test.cpp", "w")
+
+t.write("#include <stdint.h>\n")
+t.write("#include <limits.h>\n")
+t.write("#include <stdio.h>\n")
+
+t.write("extern void func (")
+t.write(out.print_as_param())
+t.write(");\n")
+
+t.write("int main() {\n")
+t.write(out.__str__())
+t.write("\n\n\t\tfunc (")
+t.write(out.print_in_call())
+t.write(");\n\n")
+t.write(loop.print_checksum())
+t.write('\n\t\tprintf("%lu\\n", checksum);\n')
+t.write("}")
+
+t.close()

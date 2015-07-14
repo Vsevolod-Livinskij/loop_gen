@@ -90,7 +90,7 @@ class Array:
         return ret
 
     def print_as_param(self):
-        return  str(self.type) + "* " + self.name
+        return  str(self.type) + "* restrict " + self.name
 
     def rand_fill(self):
         for i in range (self.size):
